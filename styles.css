@@ -350,56 +350,6 @@ tr.is-disabled {
   font-weight: 800;
 }
 
-.chart-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.period-switcher {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface-soft);
-}
-
-.period-switcher-label {
-  padding: 0 7px;
-  color: var(--muted);
-  font-size: 0.76rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.period-button {
-  min-height: 32px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 800;
-  white-space: nowrap;
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.period-button:hover {
-  background: #edf2fb;
-  color: var(--text);
-}
-
-.period-button.is-active {
-  background: var(--surface);
-  color: var(--accent);
-  box-shadow: 0 2px 8px rgba(34, 58, 94, 0.12);
-}
-
 .canvas-wrap {
   width: 100%;
   height: 390px;
@@ -509,20 +459,6 @@ footer p {
 
   .canvas-wrap {
     height: 300px;
-  }
-
-  .chart-toolbar {
-    align-items: stretch;
-    justify-content: flex-start;
-  }
-
-  .period-switcher {
-    width: 100%;
-    overflow-x: auto;
-  }
-
-  .period-switcher-label {
-    margin-right: auto;
   }
 
   .global-options {
