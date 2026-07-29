@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="计算基波与一至两个谐波合成信号的最大值、最小值、峰峰值和有效值。">
+  <title>合成信号峰峰值计算器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">SIGNAL ANALYSIS TOOL</p>
+        <h1>合成信号峰峰值计算器</h1>
+        <p class="subtitle">
+          输入基波与 1～2 个谐波的频率、幅值和相位，计算合成波形的最大值、最小值、峰峰值与有效值。
+        </p>
+      </div>
+      <button id="loadExample" class="button secondary" type="button">载入赛题示例</button>
+    </header>
+
+    <section class="notice" aria-label="计算说明">
+      <strong>注意：</strong>
+      这里的“合成幅值”默认指峰峰值
+      <span class="math">U<sub>pp</sub> = max(u) − min(u)</span>。
+      相对相位会影响峰峰值；若题目表达式中没有相位项，可保持相位为 0°。
+    </section>
+
+    <section class="panel controls-panel">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">INPUT</p>
+          <h2>信号分量</h2>
+        </div>
+        <div class="global-options">
+          <label>
+            频率单位
+            <select id="frequencyUnit">
+              <option value="Hz">Hz</option>
+              <option value="kHz" selected>kHz</option>
+              <option value="MHz">MHz</option>
+            </select>
+          </label>
+          <label>
+            幅值单位
+            <select id="amplitudeUnit">
+              <option value="µV">µV</option>
+              <option value="mV" selected>mV</option>
+              <option value="V">V</option>
+            </select>
+          </label>
+          <label>
+            输入幅值含义
+            <select id="amplitudeMode">
+              <option value="peak" selected>峰值（正弦项系数）</option>
+              <option value="rms">有效值 RMS</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="component-table-wrap">
+        <table class="component-table">
+          <thead>
+            <tr>
+              <th>启用</th>
+              <th>分量</th>
+              <th>频率</th>
+              <th>幅值</th>
+              <th>初相位 / °</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-component="base">
+              <td><input type="checkbox" checked disabled aria-label="基波始终启用"></td>
+              <td>
+                <strong>基波</strong>
+                <span class="component-symbol">U₁</span>
+              </td>
+              <td><input id="f1" type="number" min="0.000001" step="any" value="10.5" inputmode="decimal"></td>
+              <td><input id="a1" type="number" min="0" step="any" value="100" inputmode="decimal"></td>
+              <td><input id="p1" type="number" step="any" value="0" inputmode="decimal"></td>
+            </tr>
+            <tr data-component="h1">
+              <td><input id="enableH1" type="checkbox" checked aria-label="启用谐波一"></td>
+              <td>
+                <strong>谐波 1</strong>
+                <span class="component-symbol">U₃</span>
+              </td>
+              <td><input id="f2" type="number" min="0.000001" step="any" value="31.5" inputmode="decimal"></td>
+              <td><input id="a2" type="number" min="0" step="any" value="30" inputmode="decimal"></td>
+              <td><input id="p2" type="number" step="any" value="0" inputmode="decimal"></td>
+            </tr>
+            <tr data-component="h2">
+              <td><input id="enableH2" type="checkbox" checked aria-label="启用谐波二"></td>
+              <td>
+                <strong>谐波 2</strong>
+                <span class="component-symbol">U₄</span>
+              </td>
+              <td><input id="f3" type="number" min="0.000001" step="any" value="42" inputmode="decimal"></td>
+              <td><input id="a3" type="number" min="0" step="any" value="20" inputmode="decimal"></td>
+              <td><input id="p3" type="number" step="any" value="0" inputmode="decimal"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="validationMessage" class="validation-message" role="alert" hidden></div>
+
+      <div class="control-actions">
+        <button id="calculate" class="button primary" type="button">计算合成信号</button>
+        <button id="reset" class="button ghost" type="button">恢复默认值</button>
+      </div>
+    </section>
+
+    <section class="results-grid" aria-live="polite">
+      <article class="metric-card featured">
+        <span class="metric-label">峰峰值 U<sub>pp</sub></span>
+        <strong id="vppValue" class="metric-value">—</strong>
+        <span id="vppUnit" class="metric-unit">mV</span>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">最大值 U<sub>max</sub></span>
+        <strong id="maxValue" class="metric-value">—</strong>
+        <span id="maxUnit" class="metric-unit">mV</span>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">最小值 U<sub>min</sub></span>
+        <strong id="minValue" class="metric-value">—</strong>
+        <span id="minUnit" class="metric-unit">mV</span>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">有效值 U<sub>RMS</sub></span>
+        <strong id="rmsValue" class="metric-value">—</strong>
+        <span id="rmsUnit" class="metric-unit">mV</span>
+      </article>
+    </section>
+
+    <section class="panel chart-panel">
+      <div class="section-heading compact">
+        <div>
+          <p class="section-kicker">WAVEFORM</p>
+          <h2>合成波形</h2>
+        </div>
+        <span id="windowInfo" class="chip">—</span>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="waveformCanvas" aria-label="合成信号波形图"></canvas>
+      </div>
+      <p id="calculationNote" class="calculation-note"></p>
+    </section>
+
+    <section class="detail-grid">
+      <article class="panel">
+        <div class="section-heading compact">
+          <div>
+            <p class="section-kicker">EXPRESSION</p>
+            <h2>信号表达式</h2>
+          </div>
+          <button id="copyResult" class="button tiny" type="button">复制结果</button>
+        </div>
+        <div id="formula" class="formula-box">—</div>
+      </article>
+
+      <article class="panel">
+        <div class="section-heading compact">
+          <div>
+            <p class="section-kicker">SPECTRUM</p>
+            <h2>频谱分量</h2>
+          </div>
+        </div>
+        <div class="spectrum-table-wrap">
+          <table class="spectrum-table">
+            <thead>
+              <tr>
+                <th>分量</th>
+                <th>频率</th>
+                <th>峰值幅值</th>
+                <th>相位</th>
+              </tr>
+            </thead>
+            <tbody id="spectrumBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <footer>
+      <p>全部计算均在浏览器本地完成，不上传数据。结果为数值近似，适合赛题核算与快速比对。</p>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
