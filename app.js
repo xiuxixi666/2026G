@@ -52,11 +52,13 @@
     calculationNote: $("calculationNote"),
     formula: $("formula"),
     spectrumBody: $("spectrumBody"),
-    copyResult: $("copyResult")
+    copyResult: $("copyResult"),
+    periodButtons: Array.from(document.querySelectorAll(".period-button"))
   };
 
   let lastResult = null;
   let resizeTimer = null;
+  let displayedPeriods = 1;
 
   const frequencyMultipliers = {
     Hz: 1,
@@ -353,6 +355,7 @@
   function drawWaveform(result) {
     const canvas = elements.waveformCanvas;
     const rect = canvas.getBoundingClientRect();
+    const displayDuration = result.windowDuration * displayedPeriods;
     if (rect.width < 10 || rect.height < 10) {
       return;
     }
@@ -379,7 +382,7 @@
       yMin = -1;
     }
 
-    const xFor = (t) => margin.left + (t / result.windowDuration) * plotWidth;
+    const xFor = (t) => margin.left + (t / displayDuration) * plotWidth;
     const yFor = (value) => margin.top + ((yMax - value) / (yMax - yMin)) * plotHeight;
 
     ctx.lineWidth = 1;
@@ -400,12 +403,12 @@
       ctx.fillText(formatNumber(value, 5), margin.left - 10, y);
     }
 
-    const timeScale = chooseTimeScale(result.windowDuration);
+    const timeScale = chooseTimeScale(displayDuration);
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     const xTicks = 6;
     for (let i = 0; i <= xTicks; i += 1) {
-      const t = (i / xTicks) * result.windowDuration;
+      const t = (i / xTicks) * displayDuration;
       const x = xFor(t);
       ctx.beginPath();
       ctx.moveTo(x, margin.top);
@@ -424,12 +427,30 @@
       ctx.stroke();
     }
 
-    const pointCount = Math.min(5000, Math.max(1400, Math.floor(plotWidth * 3)));
+    if (displayedPeriods > 1) {
+      ctx.save();
+      ctx.strokeStyle = "#b8c5d8";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      for (let periodIndex = 1; periodIndex < displayedPeriods; periodIndex += 1) {
+        const boundaryX = xFor(result.windowDuration * periodIndex);
+        ctx.beginPath();
+        ctx.moveTo(boundaryX, margin.top);
+        ctx.lineTo(boundaryX, height - margin.bottom);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    const pointCount = Math.min(
+      12000,
+      Math.max(1400, Math.floor(plotWidth * 3 * Math.sqrt(displayedPeriods)))
+    );
     ctx.strokeStyle = "#2457d6";
     ctx.lineWidth = 2.1;
     ctx.beginPath();
     for (let i = 0; i <= pointCount; i += 1) {
-      const t = (i / pointCount) * result.windowDuration;
+      const t = (i / pointCount) * displayDuration;
       const value = signalAt(t, result.components);
       const x = xFor(t);
       const y = yFor(value);
@@ -491,20 +512,39 @@
       unitElement.textContent = unit;
     }
 
-    const periodLabel = result.periodInfo.exactEnough ? "公共周期" : "观察时间窗";
-    elements.windowInfo.textContent = `${periodLabel}：${formatTime(result.windowDuration)}`;
+    const periodLabel = result.periodInfo.exactEnough ? "公共周期" : "基础观察窗";
+    elements.windowInfo.textContent =
+      `${periodLabel}：${formatTime(result.windowDuration)} · 显示 ${displayedPeriods} 个`;
 
     if (result.periodInfo.exactEnough) {
       elements.calculationNote.textContent =
-        `已在一个公共周期内使用 ${result.sampleCount.toLocaleString("zh-CN")} 个采样点搜索极值，并在极值附近继续数值细化。`;
+        `当前横轴显示 ${displayedPeriods} 个公共周期。峰峰值仍在一个公共周期内使用 ${result.sampleCount.toLocaleString("zh-CN")} 个采样点搜索，并在极值附近继续数值细化。`;
     } else {
       elements.calculationNote.textContent =
-        `输入频率未形成较短的公共周期，当前在最低频率的 5 个周期内搜索极值；结果只代表该观察时间窗。`;
+        `当前横轴显示 ${displayedPeriods} 个基础观察窗。输入频率未形成较短公共周期，因此极值结果只代表基础观察窗内的数值搜索。`;
     }
 
     renderFormula(result.components);
     renderSpectrum(result.components);
     drawWaveform(result);
+  }
+
+  function setDisplayedPeriods(periodCount) {
+    const parsed = Number(periodCount);
+    if (![1, 2, 5, 10].includes(parsed)) {
+      return;
+    }
+
+    displayedPeriods = parsed;
+    for (const button of elements.periodButtons) {
+      const isActive = Number(button.dataset.periods) === displayedPeriods;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
+    }
+
+    if (lastResult) {
+      renderResult(lastResult);
+    }
   }
 
   function calculate() {
@@ -621,6 +661,11 @@
   elements.reset.addEventListener("click", () => applyValues(defaults));
   elements.loadExample.addEventListener("click", () => applyValues(defaults));
   elements.copyResult.addEventListener("click", copyResult);
+  for (const button of elements.periodButtons) {
+    button.addEventListener("click", () => {
+      setDisplayedPeriods(button.dataset.periods);
+    });
+  }
   elements.enableH1.addEventListener("change", updateDisabledRows);
   elements.enableH2.addEventListener("change", updateDisabledRows);
 
@@ -634,5 +679,6 @@
   });
 
   updateDisabledRows();
+  setDisplayedPeriods(1);
   calculate();
 })();
